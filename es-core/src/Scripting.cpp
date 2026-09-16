@@ -1,5 +1,6 @@
 #include "Scripting.h"
 #include "Log.h"
+#include "NamedPipeEventBroadcaster.h"
 #include "utils/Platform.h"
 #include "utils/FileSystemUtil.h"
 #include "utils/StringUtil.h"
@@ -153,6 +154,8 @@ namespace Scripting
     void fireEvent(const std::string& eventName, const std::string& arg1, const std::string& arg2, const std::string& arg3)
     {
         LOG(LogDebug) << "fireEvent: " << eventName << " " << arg1 << " " << arg2 << " " << arg3;
+
+    	NamedPipeEventBroadcaster::getInstance().publishEvent(eventName, arg1, arg2, arg3);
 
         // Process splitted paths scripts
         std::vector<std::string> scriptDirList =
