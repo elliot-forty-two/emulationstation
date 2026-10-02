@@ -170,7 +170,7 @@ void SystemScreenSaver::startScreenSaver()
 			mVideoScreensaver->setVideo(path);
 
 			if (mCurrentGame)
-				Scripting::fireEvent("game-selected", mCurrentGame->getSystem()->getName(), mCurrentGame->getPath(), mCurrentGame->getName());
+				Scripting::fireEvent("game-selected", mCurrentGame->getSourceFileData()->getSystem()->getName(), mCurrentGame->getPath(), mCurrentGame->getName());
 
 			PowerSaver::runningScreenSaver(true);
 			mTimer = 0;
@@ -214,7 +214,7 @@ void SystemScreenSaver::startScreenSaver()
 			mImageScreensaver->setImage(path);
 
 			if (mCurrentGame)
-				Scripting::fireEvent("game-selected", mCurrentGame->getSystem()->getName(), mCurrentGame->getPath(), mCurrentGame->getName());
+				Scripting::fireEvent("game-selected", mCurrentGame->getSourceFileData()->getSystem()->getName(), mCurrentGame->getPath(), mCurrentGame->getName());
 
 			PowerSaver::runningScreenSaver(true);
 			mTimer = 0;
@@ -245,6 +245,21 @@ void SystemScreenSaver::stopScreenSaver()
 
 	if(isExitingScreenSaver && mState != STATE_INACTIVE) {
 	  Scripting::fireEvent("screensaver-stop");
+
+		auto viewController = ViewController::get();
+		auto system = viewController->getSelectedSystem();
+		if (system != nullptr)
+		{
+			if (viewController->getViewMode() == ViewController::GAME_LIST)
+			{
+				auto gameList = viewController->getGameListView(system, false);
+				auto game = gameList != nullptr ? gameList->getCursor() : nullptr;
+				if (game != nullptr)
+					Scripting::fireEvent("game-selected", game->getSourceFileData()->getSystem()->getName(), game->getPath(), game->getName());
+			}
+			else if (viewController->getViewMode() == ViewController::SYSTEM_SELECT)
+				Scripting::fireEvent("system-selected", system->getName());
+		}
 	}
 
 	// we need this to loop through different videos
@@ -343,8 +358,10 @@ unsigned long SystemScreenSaver::countGameListNodes(bool video)
 
 	for (auto system : SystemData::sSystemVector)
 	{
-		// We only want nodes from game systems that are not collections
-		if (!system->isGameSystem() || system->isCollection() || system->hasPlatformId(PlatformIds::IMAGEVIEWER) || system->hasPlatformId(PlatformIds::PLATFORM_IGNORE))
+		if ((!system->isGameSystem() && !system->isCollection()) || !system->isVisible() ||
+			(!system->isCollection() &&
+			(system->hasPlatformId(PlatformIds::IMAGEVIEWER) ||
+			system->hasPlatformId(PlatformIds::PLATFORM_IGNORE))))
 			continue;
 
 		auto games = system->getRootFolder()->getFilesRecursive(GAME, true);
